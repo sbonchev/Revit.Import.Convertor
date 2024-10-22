@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Revit.Import.Convertor.UI": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}

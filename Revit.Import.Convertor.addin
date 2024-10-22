@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<RevitAddIns>
+	<AddIn Type="Application">
+		<Name>Format Convertor</Name>
+		<Text>Format Convertor</Text>
+		<Description>Batch Format Convertor From .dwg to .rvt and from .rvt to pdf.</Description>
+		<VisibilityMode>AlwaysVisible</VisibilityMode>
+		<FullClassName>Revit.Import.Convertor.App.RevitApp</FullClassName>
+		<Assembly>C:\Projects\Nemetschek\Revit.Import.Convertor\bin\x64\Debug\net8.0-windows\Revit.Import.Convertor.App.dll</Assembly>
+		<AddInId>D5061309-30C9-47B3-969C-856AB048EF6A</AddInId>
+		<VendorId>Simon Bonchev</VendorId>
+		<VendorDescription>Autodesk, www.autodesk.com</VendorDescription>
+	</AddIn>
+</RevitAddIns>
+
+

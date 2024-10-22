@@ -1,0 +1,117 @@
+﻿<Window x:Class="Revit.Import.Convertor.UI.FormatConvertorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+
+        Topmost="True"
+        WindowStartupLocation="CenterOwner"
+        mc:Ignorable="d"
+        Title="Files Format Convertor" Height="410" MaxHeight="415" MinHeight="400" MaxWidth="680" Width="620" MinWidth="560">
+
+    <Grid Margin="10">
+        <Grid.Resources>
+            <Style TargetType="{x:Type Border}">
+                <!-- All rows -->
+                <Setter Property="BorderBrush" Value="DarkGray" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="2" />
+            </Style>
+            <Style TargetType="Button" x:Key="FlatButtonStyle">
+                <Setter Property="Background" Value="DarkBlue"/>
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="FontWeight" Value="Bold"/>
+                <Setter Property="HorizontalAlignment" Value="Center"/>
+                <Setter Property="VerticalAlignment" Value="Center"/>
+                <Setter Property="VerticalContentAlignment" Value="Bottom"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="FontSize" Value="14"/>
+
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border BorderThickness="2" BorderBrush="Beige" 
+                         Background="{TemplateBinding Background}"
+                         CornerRadius="4">
+                                <ContentPresenter HorizontalAlignment="Center"   VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsEnabled" Value="false">
+                                    <Setter Property="Foreground" Value="WhiteSmoke"/>
+                                    <Setter Property="Background" Value="DarkGray"/>
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="SteelBlue"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </Grid.Resources>
+
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="1*" />
+            <ColumnDefinition Width="1*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="220" />
+            <RowDefinition Height="100" />
+            <RowDefinition Height="30" />
+        </Grid.RowDefinitions>
+
+        <ListView  Name="lbFiles" Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="2" Margin="0,0,0,10" SelectionMode="Multiple" SelectionChanged="FilesSelectionChanged"  >
+            <ListView.View>
+                <GridView>
+                    <GridView.Columns>
+                        <GridViewColumn Width="Auto" Header="Select Files:"  />
+                    </GridView.Columns>
+                </GridView>
+            </ListView.View>
+        </ListView>
+
+        <Button Name="btnOpenFile" Content="Select Files" Grid.Column="0" Grid.Row="1"    MinHeight="40" MinWidth="110"  
+         Style="{StaticResource FlatButtonStyle}" ToolTip="Select Files" Click="OpenFile" />
+        <Button x:Name="btnToRvt" Content="Convert To RVT" Grid.Column="1" Grid.Row="1"  Margin="21,0,0,0"
+         Style="{StaticResource FlatButtonStyle}"  MinHeight="40" MinWidth="110"  Width="114" ToolTip="Convert To RVT" ToolTipService.ShowOnDisabled="True" HorizontalAlignment="Left" Click="ToRvtClick"  />
+        <Button Name="btnToPdf" Content="Convert To PDF" Grid.Column="1" Grid.Row="1" 
+         Style="{StaticResource FlatButtonStyle}"  MinHeight="40" MinWidth="110" ToolTip="Convert To PDF" ToolTipService.ShowOnDisabled="True" Height="38" Width="114" HorizontalAlignment="Left" Margin="166,0,0,0" Click="ToPdfClick" />
+
+
+        <StatusBar Grid.ColumnSpan="2" Grid.Row="2" Height="28" DockPanel.Dock="Bottom" VerticalAlignment="Bottom">
+            <StatusBar.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="120" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="114" />
+                            <ColumnDefinition Width="24" />
+                        </Grid.ColumnDefinitions>
+                    </Grid>
+                </ItemsPanelTemplate>
+            </StatusBar.ItemsPanel>
+
+            <StatusBarItem Grid.Column="0">
+                <TextBlock Name="lblInfo"  Text="{Binding Path=GetInfo.Text, UpdateSourceTrigger=PropertyChanged}" />
+            </StatusBarItem>
+            <Separator Grid.Column="1" />
+            <StatusBarItem Grid.Column="2">
+                <TextBlock Name="lblInfoAll"  Text="{Binding Path=GetInfo.TextPath, UpdateSourceTrigger=PropertyChanged}" Foreground="{Binding Path=GetInfo.ProcessColor, UpdateSourceTrigger=PropertyChanged}"/>
+            </StatusBarItem>
+            <Separator Grid.Column="3" />
+            <StatusBarItem Grid.Column="4">
+                <ProgressBar Name ="prgBar" Value="{Binding Path=GetInfo.ProgressInfo, UpdateSourceTrigger=PropertyChanged}" Visibility="Visible"  Height="16" Width="108" MinWidth="102" Minimum="0" Maximum="114" VerticalAlignment="Center"/>
+            </StatusBarItem>
+            <StatusBarItem Grid.Column="5">
+                <Button Name="btnCncel" Grid.Column="0" Grid.Row="2"  Command="{Binding Path=CancelCommand}" Style="{StaticResource FlatButtonStyle}" FontSize="12" Height="22" Width="18" HorizontalAlignment="Right" ToolTip="Process Cancel" ToolTipService.ShowOnDisabled="True" HorizontalContentAlignment="Center">X</Button>
+            </StatusBarItem>
+        </StatusBar>
+
+    </Grid>
+
+</Window>
+    
+    
