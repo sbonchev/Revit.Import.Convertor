@@ -11,6 +11,7 @@ using System.Reflection;
 using Revit.Import.Convertor.UI;
 
 
+
 namespace Revit.Import.Convertor.App
 {
     [SupportedOSPlatform("windows")]
@@ -28,6 +29,7 @@ namespace Revit.Import.Convertor.App
             const string panName = "CustomPanel";
             try
             {
+                //RevitTask.Initialize(app);
                 app.CreateRibbonTab(tabName);
                 var tab = AdWin.ComponentManager.Ribbon.Tabs.Single(t => t.Name == tabName);
                 tab.Title = tabTitle;

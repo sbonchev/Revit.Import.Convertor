@@ -1,7 +1,7 @@
 ﻿using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
-//using Revit.Async;
+using Revit.Async;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -25,7 +25,7 @@ namespace Revit.Import.Convertor.UI
 
         private string _fileImpInfo = "";
 
-        private async Task ImportDwg(string[] dwgPaths)
+        private void ImportDwg(string[] dwgPaths)
         {
             if (_uidoc == null)
                 return;
@@ -48,12 +48,12 @@ namespace Revit.Import.Convertor.UI
                 var path = $"{Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)}\\TestDwg\\";
                 foreach (string dwgPath in dwgPaths)
                 {
-                    if(Worker != null && Worker.CancellationPending)
+                    if (Worker != null && Worker.CancellationPending)
                     {
                         _fileImpInfo = $"Imported {inc} {FileType.Dwg} file(s) to {FileType.Rvt}!";
                         return;
                     }
-                    Worker?.ReportProgress((inc/dwgPaths.Length) * 100);
+                    //Worker?.ReportProgress((inc / dwgPaths.Length) * 100);
                     string fileName = $"{Path.GetFileNameWithoutExtension(dwgPath)}{DateTime.UtcNow.ToString("yyyyMMddHHmmssfff")}";
                     path += $"{fileName}.rvt";
                     Document newDoc = doc.Application.NewProjectDocument(metric);
@@ -74,65 +74,86 @@ namespace Revit.Import.Convertor.UI
             catch (Exception ex)
             {
                 Debug.WriteLine(ex.Message);
-                _fileImpInfo = $"Import all files failed, successed {inc}!";
+                _fileImpInfo = $"Import all {FileType.Dwg} files failed, successed {inc}!";
                 trans?.RollBack();
             }
-            finally { Worker?.ReportProgress(0); }
+            finally
+            {
+                //Worker?.ReportProgress(0); 
+            }
         }
 
-        private bool ExportingPdf()
+        private bool ExportingPdf(string[] rvtPaths)
         {
             var doc = _uidoc?.Document;
-            using (var trans = new Transaction(doc))
-            {
-                try
-                {
-                    trans.Start("Export PDF");
-                    List<RVDB.View> views = new FilteredElementCollector(doc)
-                        .OfClass(typeof(RVDB.View))
-                        .Cast<RVDB.View>()
-                        .Where(vw => vw.ViewType == ViewType.DrawingSheet && !vw.IsTemplate)
-                        .ToList();
+            if (doc == null)
+                return false;
 
-                    var viewIds = new List<ElementId>();
-                    foreach (RVDB.View view in views)
-                    {
-                        var viewSheet = view as ViewSheet;
-                        if (viewSheet != null)
-                            viewIds.Add(viewSheet.Id);
-                    }
-                    if (0 < views.Count)
-                    {
-                        var options = new PDFExportOptions
-                        {
-                            FileName = "result",
-                            Combine = true
-                        };
-                        string workingFolder = Directory.GetCurrentDirectory();
-                        doc?.Export(workingFolder, viewIds, options);
-                    }
-                    trans.Commit();
-                }
-                catch
+            Transaction? trans = null;
+            int inc = 1;
+            var path = $"{Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)}\\TestDpf\\";
+            var options = new PDFExportOptions { Combine = true };
+            try
+            {
+                foreach (string rvtPath in rvtPaths)
                 {
-                    trans.RollBack();
+                    Document opRvtDoc = doc!.Application.OpenDocumentFile(rvtPath);
+                    using (trans = new Transaction(doc, $"ToPdf{inc}"))
+                    {
+                        trans.Start();
+                        List<RVDB.View> views = new FilteredElementCollector(opRvtDoc)
+                            .OfClass(typeof(RVDB.View))
+                            .Cast<RVDB.View>()
+                            //.Where(vw => vw.ViewType == ViewType.DrawingSheet && !vw.IsTemplate)
+                            .ToList();
+
+                        var viewIds = new List<ElementId>();
+                        foreach (RVDB.View view in views)
+                        {
+                            //var viewSheet = view as ViewSheet;
+                            //if (viewSheet != null)
+                                viewIds.Add(view.Id);
+                        }
+                        //if (views.Count > 0)
+                        //{
+                        //var vw = new View();
+                            options.FileName = $"{Path.GetFileNameWithoutExtension(rvtPath)}" +
+                                               $"{DateTime.UtcNow.ToString("yyyyMMddHHmmssfff")}";
+                            opRvtDoc?.Export(path, viewIds, options);
+                        //}
+                        trans.Commit();
+                        opRvtDoc?.Close();
+                        inc++;
+                    }
+                    _fileImpInfo = $"Successfully converted {inc} {FileType.Rvt} file(s) to {FileType.Pdf}!";
                 }
             }
+            catch (Exception ex)
+            {
+                trans?.RollBack();
+                Debug.WriteLine(ex.Message);
+               _fileImpInfo = $"Import all {FileType.Rvt} files failed, successed {inc}!";
+            }
+
             return true;
         }
 
         public void Execute(UIApplication app)
         {
-            //RevitTask.Initialize(app);
+            if (Paths == null || Paths.Length < 1)
+                return;
+
             // Get active UI doc:
             _uidoc = app.ActiveUIDocument;
             switch (FileTypeProc) 
             {
                 case FileType.Dwg:
-                    //Task.Run(async () => await RevitTask.RunAsync(() => ImportDwg(Paths!)));
+                    //RevitTask.Initialize(app);
+                    //await Task.Run(async () => await RevitTask.RunAsync(() => ImportDwg(Paths!))).ConfigureAwait(false);
+                    ImportDwg(Paths!);
                     break;
                 case FileType.Rvt:
-                    ExportingPdf();
+                    ExportingPdf(Paths!);
                     break;
             }
         }

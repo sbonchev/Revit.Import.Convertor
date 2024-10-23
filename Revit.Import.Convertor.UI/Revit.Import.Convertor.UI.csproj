@@ -22,6 +22,7 @@
 	</PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Revit.Async" Version="2.1.1" />
     <PackageReference Include="Revit_All_Main_Versions_API_x64" Version="2025.0.0" />
   </ItemGroup>
 

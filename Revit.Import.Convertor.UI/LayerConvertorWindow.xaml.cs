@@ -76,14 +76,14 @@ namespace Revit.Import.Convertor.UI
             _fileProc.FileTypeProc = FileType.Dwg;
             _fileProc.Paths = _selectedDwgPaths.ToArray();
             _fileProc.Worker = _worker;
-
+            //_handlerExternalEvent.Raise();
             _worker.RunWorkerAsync();
         }
 
         private void ToPdfClick(object sender, RoutedEventArgs e)
         {
-            _fileProc.FileTypeProc = FileType.Pdf;
-            //_fileProc.Paths = _selected.ToArray();
+            _fileProc.FileTypeProc = FileType.Rvt;
+            _fileProc.Paths = _selectedRvtPaths.ToArray();
             _fileProc.Worker = _worker;
 
             _worker.RunWorkerAsync();
@@ -91,6 +91,7 @@ namespace Revit.Import.Convertor.UI
 
         private void DoWork(object? sender, DoWorkEventArgs e)
         {
+            //Task.RunA( () => await _handlerExternalEvent.Raise()).ConfigureAwait(false);
             _handlerExternalEvent.Raise();
         }
 
