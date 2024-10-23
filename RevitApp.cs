@@ -8,6 +8,7 @@ using Autodesk.Revit.UI;
 using System.Windows;
 using System.IO;
 using System.Reflection;
+using Revit.Import.Convertor.UI;
 
 
 namespace Revit.Import.Convertor.App
@@ -48,8 +49,7 @@ namespace Revit.Import.Convertor.App
                 Debug.WriteLine(ex.Message);
                 return Result.Failed;
             }
-            //var projButtons = new List<RibbonItem>();
-            //projButtons.AddRange(panel.AddStackedItems(btnPush, button));
+
             return AddInRibbonButton(app);
         }
 
@@ -127,6 +127,10 @@ namespace Revit.Import.Convertor.App
             if (panel == null)
                 return Result.Failed;
 
+
+            var fileProc = new FileProcessing();
+            var extEvent = ExternalEvent.Create(fileProc);
+
             var img = ImageSourceForBitmap(Resource.cad_xyz_32);
             var tt = new AdWin.RibbonToolTip { Image = img, Title = "Files Format Converter" };
             var pushBtn = new AdWin.RibbonButton
@@ -139,10 +143,9 @@ namespace Revit.Import.Convertor.App
                 IsEnabled = true,
                 Size = AdWin.RibbonItemSize.Large,
                 Orientation = System.Windows.Controls.Orientation.Vertical,
-                ResizeStyle = AdWin.RibbonItemResizeStyles.HideText,
+                ResizeStyle = AdWin.RibbonItemResizeStyles.Collapse,
                 ToolTip = tt,
-                //CommandParameter = prmName,
-                //CommandHandler = command // --- Must BE IComand
+                CommandHandler = new RelayRibbonCommand((_) => new FormatConvertorWindow(fileProc, extEvent), (_) => true)
             };
             panel.Source.Items.Add(pushBtn);
 
@@ -150,60 +153,5 @@ namespace Revit.Import.Convertor.App
         }
 
     }
-
-
-    /*
-    public class AdskCommandHandler: ICommand
-    {
-        string AssemblyName
-        {
-            get;
-            set;
-        }
-
-        string ClassName
-        {
-            get;
-            set;
-        }
-
-        public AdskCommandHandler(string assemblyName, string className)
-        {
-            AssemblyName = assemblyName;
-            ClassName = className;
-        }
-
-        public event EventHandler CanExecuteChanged;
-
-        public bool CanExecute(object a)
-        {
-            return true;
-        }
-
-        
-        public void Execute(object a)
-        {
-            //System.Reflection.Assembly assembly
-            //  = System.Reflection.Assembly.LoadFrom(
-            //    AssemblyName);
-
-            //IExternalCommand command = assembly.CreateInstance( ClassName) as IExternalCommand;
-
-            //Debug.Print(
-            //  "AdskCommandHandler.Execute command invoked: "
-            //  + "assembly {0}, class {1}",
-            //  AssemblyName, ClassName);
-
-            ExternalCommandData commandData = null;
-            string message = string.Empty;
-            ElementSet elements = null;
-
-            //IExternalCommand.Result r = command.Execute(commandData, ref message, elements);
-
-            new Command().Execute(commandData, ref message, elements);
-        }
-        
-}
-*/
 
 }

@@ -1,6 +1,8 @@
 ﻿using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
+//using Revit.Async;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
@@ -15,13 +17,15 @@ namespace Revit.Import.Convertor.UI
 
         public string[]? Paths { get; set; }
 
+        public BackgroundWorker? Worker { get; set; }
+
         public string GetFileImpInfo => _fileImpInfo;
 
         private UIDocument? _uidoc;
 
         private string _fileImpInfo = "";
 
-        private void ImportDwg(string[] dwgPaths)
+        private async Task ImportDwg(string[] dwgPaths)
         {
             if (_uidoc == null)
                 return;
@@ -38,13 +42,18 @@ namespace Revit.Import.Convertor.UI
             var doc = _uidoc.Document;
             ElementId elementId;
             Transaction? trans = null;
-            int inc = 0;
+            int inc = 1;
             try
             {
                 var path = $"{Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)}\\TestDwg\\";
-                
                 foreach (string dwgPath in dwgPaths)
                 {
+                    if(Worker != null && Worker.CancellationPending)
+                    {
+                        _fileImpInfo = $"Imported {inc} {FileType.Dwg} file(s) to {FileType.Rvt}!";
+                        return;
+                    }
+                    Worker?.ReportProgress((inc/dwgPaths.Length) * 100);
                     string fileName = $"{Path.GetFileNameWithoutExtension(dwgPath)}{DateTime.UtcNow.ToString("yyyyMMddHHmmssfff")}";
                     path += $"{fileName}.rvt";
                     Document newDoc = doc.Application.NewProjectDocument(metric);
@@ -68,6 +77,7 @@ namespace Revit.Import.Convertor.UI
                 _fileImpInfo = $"Import all files failed, successed {inc}!";
                 trans?.RollBack();
             }
+            finally { Worker?.ReportProgress(0); }
         }
 
         private bool ExportingPdf()
@@ -113,13 +123,13 @@ namespace Revit.Import.Convertor.UI
 
         public void Execute(UIApplication app)
         {
+            //RevitTask.Initialize(app);
             // Get active UI doc:
             _uidoc = app.ActiveUIDocument;
-
             switch (FileTypeProc) 
             {
                 case FileType.Dwg:
-                    ImportDwg(Paths!);
+                    //Task.Run(async () => await RevitTask.RunAsync(() => ImportDwg(Paths!)));
                     break;
                 case FileType.Rvt:
                     ExportingPdf();

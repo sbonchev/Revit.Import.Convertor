@@ -95,18 +95,18 @@
             </StatusBar.ItemsPanel>
 
             <StatusBarItem Grid.Column="0">
-                <TextBlock Name="lblInfo"  Text="{Binding Path=GetInfo.Text, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBlock Name="lblInfo" />
             </StatusBarItem>
             <Separator Grid.Column="1" />
             <StatusBarItem Grid.Column="2">
-                <TextBlock Name="lblInfoAll"  Text="{Binding Path=GetInfo.TextPath, UpdateSourceTrigger=PropertyChanged}" Foreground="{Binding Path=GetInfo.ProcessColor, UpdateSourceTrigger=PropertyChanged}"/>
+                <TextBlock Name="lblInfoAll"  Foreground="{Binding Path=GetInfo.ProcessColor, UpdateSourceTrigger=PropertyChanged}"/>
             </StatusBarItem>
             <Separator Grid.Column="3" />
             <StatusBarItem Grid.Column="4">
-                <ProgressBar Name ="prgBar" Value="{Binding Path=GetInfo.ProgressInfo, UpdateSourceTrigger=PropertyChanged}" Visibility="Visible"  Height="16" Width="108" MinWidth="102" Minimum="0" Maximum="114" VerticalAlignment="Center"/>
+                <ProgressBar Name ="prgBar" Visibility="Visible"  Height="16" Width="108" MinWidth="102" Minimum="0" Maximum="114" VerticalAlignment="Center"/>
             </StatusBarItem>
             <StatusBarItem Grid.Column="5">
-                <Button Name="btnCncel" Grid.Column="0" Grid.Row="2"  Command="{Binding Path=CancelCommand}" Style="{StaticResource FlatButtonStyle}" FontSize="12" Height="22" Width="18" HorizontalAlignment="Right" ToolTip="Process Cancel" ToolTipService.ShowOnDisabled="True" HorizontalContentAlignment="Center">X</Button>
+                <Button Name="btnCncel" Grid.Column="0" Grid.Row="2"  Style="{StaticResource FlatButtonStyle}" FontSize="12" Height="22" Width="18" HorizontalAlignment="Right" ToolTip="Process Cancel" ToolTipService.ShowOnDisabled="True" HorizontalContentAlignment="Center" Click="OnCncelClick">X</Button>
             </StatusBarItem>
         </StatusBar>
 
