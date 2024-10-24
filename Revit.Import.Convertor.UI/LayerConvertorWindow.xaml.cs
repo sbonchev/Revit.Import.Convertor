@@ -15,7 +15,7 @@ namespace Revit.Import.Convertor.UI
     /// </summary>
     public partial class FormatConvertorWindow : Window
     {
-    #pragma warning disable CS8618
+#pragma warning disable CS8618
         /// <summary>
         /// This ctor needs only for xaml view rendering!
         /// </summary>
@@ -24,21 +24,28 @@ namespace Revit.Import.Convertor.UI
 
         public FormatConvertorWindow(FileProcessing fileProcessing, ExternalEvent extEvent)
         {
+            if (MyApp.AppIsRun)
+                return;
+
             Init();
 
             _handlerExternalEvent = extEvent;
             _fileProc = fileProcessing;
         }
 
-        public FormatConvertorWindow(FileProcessing fileProcessing) 
+        public FormatConvertorWindow(FileProcessing fileProcessing)
         {
+            if (MyApp.AppIsRun)
+                return;
+
             Init();
 
             _handlerExternalEvent = ExternalEvent.Create(fileProcessing);
             _fileProc = fileProcessing;
         }
 
-    #pragma warning restore CS8618
+#pragma warning restore CS8618
+        private readonly bool _appIsRun = false;
 
         private readonly ExternalEvent _handlerExternalEvent;
 
@@ -69,6 +76,9 @@ namespace Revit.Import.Convertor.UI
 
             lblInfoAll.Foreground = lblInfo.Foreground;
             lblInfoAll.Text = "Select proper processing .dwg or .rvt file(s)!";
+
+            MyApp.AppIsRun = true;
+            Closed += (o,e) => MyApp.AppIsRun = false;
         }
 
         private void ToRvtClick(object sender, RoutedEventArgs e)
@@ -114,7 +124,7 @@ namespace Revit.Import.Convertor.UI
                 lblInfoAll.Foreground = new SolidColorBrush(Colors.DarkRed);
                 lblInfoAll.Text = $"Processing Canceled: {infoText}";
             }
-            else if (e.Error!= null)
+            else if (e.Error != null)
             {
                 lblInfoAll.Foreground = new SolidColorBrush(Colors.DarkRed);
                 lblInfoAll.Text = $"Processing Error: {infoText}";
@@ -164,7 +174,7 @@ namespace Revit.Import.Convertor.UI
         private void FilesSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             var selectedPaths = lbFiles.SelectedItems;
-            if(_selectedDwgPaths.Count > 0) _selectedDwgPaths.Clear();
+            if (_selectedDwgPaths.Count > 0) _selectedDwgPaths.Clear();
             if (_selectedRvtPaths.Count > 0) _selectedRvtPaths.Clear();
             foreach (var path in selectedPaths)
             {
@@ -182,5 +192,10 @@ namespace Revit.Import.Convertor.UI
             lblInfoAll.Text = $"{_selectedDwgPaths.Count} {FileType.Dwg} and {_selectedRvtPaths.Count} {FileType.Rvt} file(s) has been selected!";
         }
 
+    }
+
+    public static class MyApp
+    {
+        public static bool AppIsRun = false;
     }
 }
