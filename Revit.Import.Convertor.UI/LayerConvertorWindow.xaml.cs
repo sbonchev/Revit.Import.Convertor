@@ -121,7 +121,7 @@ namespace Revit.Import.Convertor.UI
             }
             else {
                 lblInfoAll.Foreground = new SolidColorBrush(Colors.DarkGreen);
-                lblInfoAll.Text = infoText;
+                lblInfoAll.Text = $"Successfully Processed: {infoText}";
             }
         }
 

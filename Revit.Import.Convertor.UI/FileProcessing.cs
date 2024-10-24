@@ -27,9 +27,12 @@ namespace Revit.Import.Convertor.UI
 
         private void ImportDwg(string[] dwgPaths)
         {
+            _fileImpInfo = "";
             if (_uidoc == null)
+            {
+                _fileImpInfo = $"Import To {FileType.Dwg} Failed - No Active Doc!";
                 return;
-
+            }                
             var dwgOptions = new DWGImportOptions
             {
                 Unit = ImportUnit.Meter,
@@ -42,7 +45,7 @@ namespace Revit.Import.Convertor.UI
             var doc = _uidoc.Document;
             ElementId elementId;
             Transaction? trans = null;
-            int inc = 1;
+            int inc = 0;
             try
             {
                 var path = $"{Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)}\\TestDwg\\";
@@ -53,10 +56,11 @@ namespace Revit.Import.Convertor.UI
                         _fileImpInfo = $"Imported {inc} {FileType.Dwg} file(s) to {FileType.Rvt}!";
                         return;
                     }
-                    //Worker?.ReportProgress((inc / dwgPaths.Length) * 100);
                     string fileName = $"{Path.GetFileNameWithoutExtension(dwgPath)}{DateTime.UtcNow.ToString("yyyyMMddHHmmssfff")}";
                     path += $"{fileName}.rvt";
                     Document newDoc = doc.Application.NewProjectDocument(metric);
+                    //Worker?.ReportProgress((inc / dwgPaths.Length) * 100);
+                    inc++;
                     using (trans = new Transaction(newDoc, $"ImportDwgFile{inc}"))
                     {
                         trans.Start();
@@ -66,7 +70,6 @@ namespace Revit.Import.Convertor.UI
                         newDoc.SaveAs(path, saveAsOptions);
                         newDoc.Close();
                     }
-                    inc++;
                     //trans.Commit(); ! REMEMBER: CANNOT PROVIDE NORMAL SAVE !
                 }
                 _fileImpInfo = $"Successfully imported {inc} {FileType.Dwg} file(s) to {FileType.Rvt}!";
@@ -74,7 +77,7 @@ namespace Revit.Import.Convertor.UI
             catch (Exception ex)
             {
                 Debug.WriteLine(ex.Message);
-                _fileImpInfo = $"Import all {FileType.Dwg} files failed, successed {inc}!";
+                _fileImpInfo = $"Import all {FileType.Dwg} files failed, successed {inc--}!";
                 trans?.RollBack();
             }
             finally
@@ -85,6 +88,7 @@ namespace Revit.Import.Convertor.UI
 
         private bool ExportingPdf(string[] rvtPaths)
         {
+            _fileImpInfo = "";
             var doc = _uidoc?.Document;
             if (doc == null)
                 return false;
@@ -104,29 +108,29 @@ namespace Revit.Import.Convertor.UI
                         List<RVDB.View> views = new FilteredElementCollector(opRvtDoc)
                             .OfClass(typeof(RVDB.View))
                             .Cast<RVDB.View>()
-                            //.Where(vw => vw.ViewType == ViewType.DrawingSheet && !vw.IsTemplate)
+                            .Where(vw => vw.ViewType == ViewType.DrawingSheet && !vw.IsTemplate)
                             .ToList();
 
                         var viewIds = new List<ElementId>();
                         foreach (RVDB.View view in views)
                         {
-                            //var viewSheet = view as ViewSheet;
-                            //if (viewSheet != null)
+                            var viewSheet = view as ViewSheet;
+                            if (viewSheet != null)
                                 viewIds.Add(view.Id);
                         }
-                        //if (views.Count > 0)
-                        //{
-                        //var vw = new View();
+                        if (views.Count > 0)
+                        {
+                            //var vw = new View();
                             options.FileName = $"{Path.GetFileNameWithoutExtension(rvtPath)}" +
                                                $"{DateTime.UtcNow.ToString("yyyyMMddHHmmssfff")}";
                             opRvtDoc?.Export(path, viewIds, options);
-                        //}
+                        }
                         trans.Commit();
                         opRvtDoc?.Close();
                         inc++;
                     }
-                    _fileImpInfo = $"Successfully converted {inc} {FileType.Rvt} file(s) to {FileType.Pdf}!";
                 }
+                _fileImpInfo = $"Successfully converted {inc} {FileType.Rvt} file(s) to {FileType.Pdf}!";
             }
             catch (Exception ex)
             {
