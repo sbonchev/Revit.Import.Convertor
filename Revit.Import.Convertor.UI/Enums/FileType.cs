@@ -1,5 +1,4 @@
-﻿
-namespace Revit.Import.Convertor.UI
+﻿namespace Revit.Import.Convertor.UI.Enums
 {
     public enum FileType
     {

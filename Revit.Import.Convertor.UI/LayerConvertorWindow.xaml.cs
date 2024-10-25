@@ -6,6 +6,8 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using Autodesk.Revit.UI;
 using System.Windows.Media;
+using Revit.Import.Convertor.UI.Enums;
+using Revit.Import.Convertor.UI.BL;
 
 
 namespace Revit.Import.Convertor.UI
@@ -27,10 +29,7 @@ namespace Revit.Import.Convertor.UI
             if (MyApp.AppIsRun)
                 return;
 
-            Init();
-
-            _handlerExternalEvent = extEvent;
-            _fileProc = fileProcessing;
+            Init(fileProcessing, extEvent);
         }
 
         public FormatConvertorWindow(FileProcessing fileProcessing)
@@ -38,18 +37,14 @@ namespace Revit.Import.Convertor.UI
             if (MyApp.AppIsRun)
                 return;
 
-            Init();
-
-            _handlerExternalEvent = ExternalEvent.Create(fileProcessing);
-            _fileProc = fileProcessing;
+            Init(fileProcessing, ExternalEvent.Create(fileProcessing));
         }
 
 #pragma warning restore CS8618
-        private readonly bool _appIsRun = false;
 
-        private readonly ExternalEvent _handlerExternalEvent;
+        private ExternalEvent _handlerExternalEvent;
 
-        private readonly FileProcessing _fileProc;
+        private FileProcessing _fileProc;
 
         private BackgroundWorker _worker;
 
@@ -57,7 +52,7 @@ namespace Revit.Import.Convertor.UI
 
         private List<string> _selectedRvtPaths;
 
-        private void Init()
+        private void Init(FileProcessing fileProcessing, ExternalEvent extEvent)
         {
             InitializeComponent();
 
@@ -71,38 +66,52 @@ namespace Revit.Import.Convertor.UI
             _selectedDwgPaths = new();
             _selectedRvtPaths = new();
 
-            //ShowDialog(); // --- not a good choice for such issue!
-            Show();
+            Show(); // --- ShowDialog() not a good choice for such issue but a form with similar behavior!
 
             lblInfoAll.Foreground = lblInfo.Foreground;
             lblInfoAll.Text = "Select proper processing .dwg or .rvt file(s)!";
 
             MyApp.AppIsRun = true;
-            Closed += (o,e) => MyApp.AppIsRun = false;
+            MyApp.AppWindow = this;
+            Closed += (o,e) => MyApp.AppIsRun = false; // --- CANNOT RUN MORE THAN ONE APP INSTANCE!
+
+            _handlerExternalEvent = extEvent;
+            //ProcessDispatcher.Execute(() => _handlerExternalEvent.Raise());
+            _fileProc = fileProcessing;
         }
 
         private void ToRvtClick(object sender, RoutedEventArgs e)
         {
+            SetButtonsState(false);
             _fileProc.FileTypeProc = FileType.Dwg;
             _fileProc.Paths = _selectedDwgPaths.ToArray();
-            _fileProc.Worker = _worker;
-            //_handlerExternalEvent.Raise();
-            _worker.RunWorkerAsync();
+
+            //_worker.RunWorkerAsync();
+            _handlerExternalEvent.Raise();
+            //while (_fileProc.ProcessInfoResult == null) { }; // --- Complete Process Waiting
+            SetInfo(_fileProc?.ProcessInfoResult);
+            SetButtonsState(true);
         }
 
         private void ToPdfClick(object sender, RoutedEventArgs e)
         {
+             SetButtonsState(false);
             _fileProc.FileTypeProc = FileType.Rvt;
             _fileProc.Paths = _selectedRvtPaths.ToArray();
-            _fileProc.Worker = _worker;
 
-            _worker.RunWorkerAsync();
+            //_worker.RunWorkerAsync();
+            _handlerExternalEvent.Raise();
+            //while (_fileProc.ProcessInfoResult == null) { }; // --- Complete Process Waiting
+            //SetInfo(_fileProc.ProcessInfoResult);
+            SetButtonsState(true);
         }
 
         private void DoWork(object? sender, DoWorkEventArgs e)
         {
-            //Task.RunA( () => await _handlerExternalEvent.Raise()).ConfigureAwait(false);
-            _handlerExternalEvent.Raise();
+            ProcessDispatcher.Execute(() => e.Result = _fileProc.FileProcess(_worker));
+            var info = e.Result as ProcessInfo;
+            while (info?.Result != ProcessResult.None) // ON TRANS START: 'The managed object is not valid'
+            { }
         }
 
         private void OnCncelClick(object sender, RoutedEventArgs e)
@@ -111,7 +120,6 @@ namespace Revit.Import.Convertor.UI
                 _worker.CancelAsync();
         }
 
-
         private void ProgressChanged(object? sender, ProgressChangedEventArgs e)
         {
             prgBar.Value = e.ProgressPercentage;
@@ -119,20 +127,21 @@ namespace Revit.Import.Convertor.UI
 
         private void WorkerCompleted(object? sender, RunWorkerCompletedEventArgs e)
         {
-            var infoText = _fileProc.GetFileImpInfo;
+            var info = e.Result as ProcessInfo;
             if (e.Cancelled) {
                 lblInfoAll.Foreground = new SolidColorBrush(Colors.DarkRed);
-                lblInfoAll.Text = $"Processing Canceled: {infoText}";
+                lblInfoAll.Text = $"Processing Canceled: {info?.Info}";
             }
             else if (e.Error != null)
             {
                 lblInfoAll.Foreground = new SolidColorBrush(Colors.DarkRed);
-                lblInfoAll.Text = $"Processing Error: {infoText}";
+                lblInfoAll.Text = $"Processing Error: {info?.Info}";
             }
             else {
                 lblInfoAll.Foreground = new SolidColorBrush(Colors.DarkGreen);
-                lblInfoAll.Text = $"Successfully Processed: {infoText}";
+                lblInfoAll.Text = $"Successfully Processed: {info?.Info}";
             }
+            SetButtonsState(true);
         }
 
         private void OpenFile(object sender, RoutedEventArgs e)
@@ -192,10 +201,46 @@ namespace Revit.Import.Convertor.UI
             lblInfoAll.Text = $"{_selectedDwgPaths.Count} {FileType.Dwg} and {_selectedRvtPaths.Count} {FileType.Rvt} file(s) has been selected!";
         }
 
+        private void SetInfo(ProcessInfo info)
+        {
+            if (info == null)
+                return;
+
+            if (info.Result == ProcessResult.Cancel)
+            {
+                lblInfoAll.Foreground = new SolidColorBrush(Colors.DarkRed);
+                lblInfoAll.Text = $"Processing Canceled: {info?.Info}";
+            }
+            else if (info.Result == ProcessResult.Failed)
+            {
+                lblInfoAll.Foreground = new SolidColorBrush(Colors.DarkRed);
+                lblInfoAll.Text = $"Processing Error: {info?.Info}";
+            }
+            else if (info.Result == ProcessResult.None)
+            {
+                lblInfoAll.Foreground = new SolidColorBrush(Colors.DarkRed);
+                lblInfoAll.Text = "Operation Failed";
+            }
+            else
+            {
+                lblInfoAll.Foreground = new SolidColorBrush(Colors.DarkGreen);
+                lblInfoAll.Text = $"Successfully Processed: {info?.Info}";
+            }
+            SetButtonsState(true);
+        }
+
+        private void SetButtonsState(bool isEnabled)
+        {
+            btnOpenFile.IsEnabled = isEnabled;
+            btnToPdf.IsEnabled = isEnabled;
+            btnToRvt.IsEnabled = isEnabled;
+        }
+
     }
 
     public static class MyApp
     {
         public static bool AppIsRun = false;
+        public static FormatConvertorWindow? AppWindow { get; set; }
     }
 }

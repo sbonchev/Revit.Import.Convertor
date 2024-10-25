@@ -2,7 +2,7 @@
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using Revit.Import.Convertor.UI;
-using Revit.Async;
+using Revit.Import.Convertor.UI.BL;
 
 namespace Revit.Import.Convertor.App
 {

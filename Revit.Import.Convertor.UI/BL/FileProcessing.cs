@@ -1,14 +1,14 @@
 ﻿using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
-using Revit.Async;
+using Revit.Import.Convertor.UI.Enums;
+//using Revit.Async;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
-using RVDB = Autodesk.Revit.DB;
 
-namespace Revit.Import.Convertor.UI
+namespace Revit.Import.Convertor.UI.BL
 {
     [Transaction(TransactionMode.Manual)]
     public class FileProcessing : IExternalEventHandler
@@ -17,22 +17,24 @@ namespace Revit.Import.Convertor.UI
 
         public string[]? Paths { get; set; }
 
-        public BackgroundWorker? Worker { get; set; }
+        private ProcessInfo? _procInfo;
 
-        public string GetFileImpInfo => _fileImpInfo;
+        public ProcessInfo? ProcessInfoResult => _procInfo;
 
         private UIDocument? _uidoc;
 
-        private string _fileImpInfo = "";
+        private string GetDateToString => DateTime.UtcNow.ToString("yyyyMMddHHmmssfff");
 
-        private void ImportDwg(string[] dwgPaths)
+        private ProcessInfo ImportDwg(BackgroundWorker? worker=null)
         {
-            _fileImpInfo = "";
+            string[] dwgPaths = Paths!;
+            var fileImpInfo = new ProcessInfo { Result = ProcessResult.None, Info = "" };
             if (_uidoc == null)
             {
-                _fileImpInfo = $"Import To {FileType.Dwg} Failed - No Active Doc!";
-                return;
-            }                
+                fileImpInfo.Info = $"Import To {FileType.Dwg} Failed - No Active Doc!";
+                fileImpInfo.Result = ProcessResult.Failed;
+                return fileImpInfo;
+            }
             var dwgOptions = new DWGImportOptions
             {
                 Unit = ImportUnit.Meter,
@@ -51,12 +53,13 @@ namespace Revit.Import.Convertor.UI
                 var path = $"{Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)}\\TestDwg\\";
                 foreach (string dwgPath in dwgPaths)
                 {
-                    if (Worker != null && Worker.CancellationPending)
+                    if (worker != null && worker.CancellationPending)
                     {
-                        _fileImpInfo = $"Imported {inc} {FileType.Dwg} file(s) to {FileType.Rvt}!";
-                        return;
+                        fileImpInfo.Info = $"Imported {inc} {FileType.Dwg} file(s) to {FileType.Rvt}!";
+                        fileImpInfo.Result = ProcessResult.Cancel;
+                        return fileImpInfo;
                     }
-                    string fileName = $"{Path.GetFileNameWithoutExtension(dwgPath)}{DateTime.UtcNow.ToString("yyyyMMddHHmmssfff")}";
+                    string fileName = $"{Path.GetFileNameWithoutExtension(dwgPath)}{GetDateToString}";
                     path += $"{fileName}.rvt";
                     Document newDoc = doc.Application.NewProjectDocument(metric);
                     //Worker?.ReportProgress((inc / dwgPaths.Length) * 100);
@@ -72,13 +75,17 @@ namespace Revit.Import.Convertor.UI
                     }
                     //trans.Commit(); ! REMEMBER: CANNOT PROVIDE NORMAL SAVE !
                 }
-                _fileImpInfo = $"Successfully imported {inc} {FileType.Dwg} file(s) to {FileType.Rvt}!";
+                fileImpInfo.Info = $"Successfully imported {inc} {FileType.Dwg} file(s) to {FileType.Rvt}!";
+                fileImpInfo.Result= ProcessResult.Ok;
+                return fileImpInfo;
             }
             catch (Exception ex)
             {
                 Debug.WriteLine(ex.Message);
-                _fileImpInfo = $"Import all {FileType.Dwg} files failed, successed {inc--}!";
                 trans?.RollBack();
+                fileImpInfo.Info = $"Import all {FileType.Dwg} files failed, successed {inc--}!";
+                fileImpInfo.Result = ProcessResult.Failed;
+                return fileImpInfo;
             }
             finally
             {
@@ -86,13 +93,17 @@ namespace Revit.Import.Convertor.UI
             }
         }
 
-        private bool ExportingPdf(string[] rvtPaths)
+        private ProcessInfo ExportingPdf(BackgroundWorker? worker = null)
         {
-            _fileImpInfo = "";
+            string[] rvtPaths = Paths!;
+            var fileImpInfo = new ProcessInfo { Result = ProcessResult.None, Info = "" };
             var doc = _uidoc?.Document;
             if (doc == null)
-                return false;
-
+            {
+                fileImpInfo.Info = $"Import To {FileType.Dwg} Failed - No Active Doc!";
+                fileImpInfo.Result = ProcessResult.Failed;
+                return fileImpInfo;
+            }
             Transaction? trans = null;
             int inc = 1;
             var path = $"{Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)}\\TestDpf\\";
@@ -105,14 +116,14 @@ namespace Revit.Import.Convertor.UI
                     using (trans = new Transaction(doc, $"ToPdf{inc}"))
                     {
                         trans.Start();
-                        List<RVDB.View> views = new FilteredElementCollector(opRvtDoc)
-                            .OfClass(typeof(RVDB.View))
-                            .Cast<RVDB.View>()
+                        List<View> views = new FilteredElementCollector(opRvtDoc)
+                            .OfClass(typeof(View))
+                            .Cast<View>()
                             .Where(vw => vw.ViewType == ViewType.DrawingSheet && !vw.IsTemplate)
                             .ToList();
 
                         var viewIds = new List<ElementId>();
-                        foreach (RVDB.View view in views)
+                        foreach (View view in views)
                         {
                             var viewSheet = view as ViewSheet;
                             if (viewSheet != null)
@@ -120,9 +131,7 @@ namespace Revit.Import.Convertor.UI
                         }
                         if (views.Count > 0)
                         {
-                            //var vw = new View();
-                            options.FileName = $"{Path.GetFileNameWithoutExtension(rvtPath)}" +
-                                               $"{DateTime.UtcNow.ToString("yyyyMMddHHmmssfff")}";
+                            options.FileName = $"{Path.GetFileNameWithoutExtension(rvtPath)}{GetDateToString}";
                             opRvtDoc?.Export(path, viewIds, options);
                         }
                         trans.Commit();
@@ -130,37 +139,62 @@ namespace Revit.Import.Convertor.UI
                         inc++;
                     }
                 }
-                _fileImpInfo = $"Successfully converted {inc} {FileType.Rvt} file(s) to {FileType.Pdf}!";
+                fileImpInfo.Info = $"Successfully converted {inc} {FileType.Rvt} file(s) to {FileType.Pdf}!";
+                fileImpInfo.Result = ProcessResult.Ok;
+                return fileImpInfo;
             }
             catch (Exception ex)
             {
                 trans?.RollBack();
                 Debug.WriteLine(ex.Message);
-               _fileImpInfo = $"Import all {FileType.Rvt} files failed, successed {inc}!";
+                fileImpInfo.Info = $"Import all {FileType.Rvt} files failed, successed {inc}!";
+                fileImpInfo.Result = ProcessResult.Failed;
+                return fileImpInfo;
             }
-
-            return true;
         }
 
         public void Execute(UIApplication app)
         {
-            if (Paths == null || Paths.Length < 1)
-                return;
-
             // Get active UI doc:
             _uidoc = app.ActiveUIDocument;
-            switch (FileTypeProc) 
+            FileProcess();
+        }
+
+        public ProcessInfo FileProcess(BackgroundWorker? worker=null)
+        {
+            _procInfo = null;
+            switch (FileTypeProc)
             {
                 case FileType.Dwg:
-                    //RevitTask.Initialize(app);
-                    //await Task.Run(async () => await RevitTask.RunAsync(() => ImportDwg(Paths!))).ConfigureAwait(false);
-                    ImportDwg(Paths!);
+                    //await Task.Run(() => ImportDwg(Paths!)).ConfigureAwait(false);
+                    _procInfo = ImportDwg(worker);
                     break;
                 case FileType.Rvt:
-                    ExportingPdf(Paths!);
+                    _procInfo = ExportingPdf(worker);
+                    break;
+                default:
+                    _procInfo = new() { Info = "", Result = ProcessResult.None }; 
                     break;
             }
+            return _procInfo;
         }
+
+        //private void DoWork(object? sender, DoWorkEventArgs e)
+        //{
+        //    //await Task.Run(() => //ProcessDispatcher.Execute(() =>
+        //    //{//_handlerExternalEvent.Raise()).ConfigureAwait(false);
+        //        switch (FileTypeProc)
+        //        {
+        //            case FileType.Dwg:
+        //                //await Task.Run(() => ImportDwg(Paths!)).ConfigureAwait(false);
+        //                ImportDwg(Paths!);
+        //                break;
+        //            case FileType.Rvt:
+        //                ExportingPdf(Paths!);
+        //                break;
+        //        }
+        //    //});
+        //}
 
         public string GetName()
         {
