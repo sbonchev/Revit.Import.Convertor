@@ -2,6 +2,8 @@
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using Revit.Import.Convertor.UI.Enums;
+using System;
+
 //using Revit.Async;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -13,6 +15,13 @@ namespace Revit.Import.Convertor.UI.BL
     [Transaction(TransactionMode.Manual)]
     public class FileProcessing : IExternalEventHandler
     {
+
+        public EventHandler<ProcessInfo>? OnProcessCompleteEvent { get; set; }
+
+        public EventHandler<int>? OnProcessProgressEvent { get; set; }
+
+        public bool IsAbort { get; set; }
+
         public FileType FileTypeProc { get; set; }
 
         public string[]? Paths { get; set; }
@@ -53,7 +62,7 @@ namespace Revit.Import.Convertor.UI.BL
                 var path = $"{Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)}\\TestDwg\\";
                 foreach (string dwgPath in dwgPaths)
                 {
-                    if (worker != null && worker.CancellationPending)
+                    if ((worker != null && worker.CancellationPending) || IsAbort)
                     {
                         fileImpInfo.Info = $"Imported {inc} {FileType.Dwg} file(s) to {FileType.Rvt}!";
                         fileImpInfo.Result = ProcessResult.Cancel;
@@ -62,7 +71,6 @@ namespace Revit.Import.Convertor.UI.BL
                     string fileName = $"{Path.GetFileNameWithoutExtension(dwgPath)}{GetDateToString}";
                     path += $"{fileName}.rvt";
                     Document newDoc = doc.Application.NewProjectDocument(metric);
-                    //Worker?.ReportProgress((inc / dwgPaths.Length) * 100);
                     inc++;
                     using (trans = new Transaction(newDoc, $"ImportDwgFile{inc}"))
                     {
@@ -73,10 +81,14 @@ namespace Revit.Import.Convertor.UI.BL
                         newDoc.SaveAs(path, saveAsOptions);
                         newDoc.Close();
                     }
+                    //Worker?.ReportProgress((inc / dwgPaths.Length) * 100);
+                    OnProcessProgress((inc / dwgPaths.Length) * 100);
                     //trans.Commit(); ! REMEMBER: CANNOT PROVIDE NORMAL SAVE !
                 }
-                fileImpInfo.Info = $"Successfully imported {inc} {FileType.Dwg} file(s) to {FileType.Rvt}!";
+                var cntInfo = inc > 1 ? "s" : "";
+                fileImpInfo.Info = $"Successfully imported {inc} {FileType.Dwg} file{cntInfo} to {FileType.Rvt}!";
                 fileImpInfo.Result= ProcessResult.Ok;
+
                 return fileImpInfo;
             }
             catch (Exception ex)
@@ -112,6 +124,12 @@ namespace Revit.Import.Convertor.UI.BL
             {
                 foreach (string rvtPath in rvtPaths)
                 {
+                    if (IsAbort)
+                    {
+                        fileImpInfo.Info = $"Imported {inc} {FileType.Rvt} file(s) to {FileType.Pdf}!";
+                        fileImpInfo.Result = ProcessResult.Cancel;
+                        return fileImpInfo;
+                    }
                     Document opRvtDoc = doc!.Application.OpenDocumentFile(rvtPath);
                     using (trans = new Transaction(doc, $"ToPdf{inc}"))
                     {
@@ -160,7 +178,7 @@ namespace Revit.Import.Convertor.UI.BL
             FileProcess();
         }
 
-        public ProcessInfo FileProcess(BackgroundWorker? worker=null)
+        public void FileProcess(BackgroundWorker? worker=null)
         {
             _procInfo = null;
             switch (FileTypeProc)
@@ -176,7 +194,15 @@ namespace Revit.Import.Convertor.UI.BL
                     _procInfo = new() { Info = "", Result = ProcessResult.None }; 
                     break;
             }
-            return _procInfo;
+
+            if(OnProcessCompleteEvent != null)
+                OnProcessCompleteEvent(this, _procInfo);
+        }
+
+        private void OnProcessProgress(int progress)
+        {
+            if (OnProcessProgressEvent != null)
+                OnProcessProgressEvent(this, progress);
         }
 
         //private void DoWork(object? sender, DoWorkEventArgs e)

@@ -12,7 +12,7 @@ namespace Revit.Import.Convertor.UI.BL
                 return;
 
             // ---Marshall to Main Thread:
-            dispatcher.BeginInvoke(DispatcherPriority.Background, act);
+            dispatcher.Invoke(act);
         }
     }
 }

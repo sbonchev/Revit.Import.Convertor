@@ -70,14 +70,16 @@ namespace Revit.Import.Convertor.UI
 
             lblInfoAll.Foreground = lblInfo.Foreground;
             lblInfoAll.Text = "Select proper processing .dwg or .rvt file(s)!";
+            //btnCncel.IsEnabled = false;
 
             MyApp.AppIsRun = true;
             MyApp.AppWindow = this;
             Closed += (o,e) => MyApp.AppIsRun = false; // --- CANNOT RUN MORE THAN ONE APP INSTANCE!
 
             _handlerExternalEvent = extEvent;
-            //ProcessDispatcher.Execute(() => _handlerExternalEvent.Raise());
             _fileProc = fileProcessing;
+            _fileProc.OnProcessCompleteEvent += (o, e) =>  OnProcessCompleteEvent(o!,e); //new EventHandler<ProcessInfo>(OnProcessCompleteEvent!);
+            _fileProc.OnProcessProgressEvent += (o, e) => OnProcessProgressEvent(o!, e);
         }
 
         private void ToRvtClick(object sender, RoutedEventArgs e)
@@ -89,8 +91,6 @@ namespace Revit.Import.Convertor.UI
             //_worker.RunWorkerAsync();
             _handlerExternalEvent.Raise();
             //while (_fileProc.ProcessInfoResult == null) { }; // --- Complete Process Waiting
-            SetInfo(_fileProc?.ProcessInfoResult);
-            SetButtonsState(true);
         }
 
         private void ToPdfClick(object sender, RoutedEventArgs e)
@@ -102,13 +102,24 @@ namespace Revit.Import.Convertor.UI
             //_worker.RunWorkerAsync();
             _handlerExternalEvent.Raise();
             //while (_fileProc.ProcessInfoResult == null) { }; // --- Complete Process Waiting
-            //SetInfo(_fileProc.ProcessInfoResult);
-            SetButtonsState(true);
+        }
+
+        void OnProcessCompleteEvent(object sender, ProcessInfo info)
+        {
+            SetInfo(info);
+        }
+
+        void OnProcessProgressEvent(object sender, int prog)
+        {
+            ProcessDispatcher.Execute(() => { prgBar.Value = prog; });
+            Application.Current.Dispatcher.Invoke(() => prgBar.Value = prog);
+            //prgBar.Value = prog;
         }
 
         private void DoWork(object? sender, DoWorkEventArgs e)
         {
-            ProcessDispatcher.Execute(() => e.Result = _fileProc.FileProcess(_worker));
+            _fileProc.FileProcess(_worker);
+            ProcessDispatcher.Execute(() => e.Result = _fileProc.ProcessInfoResult);
             var info = e.Result as ProcessInfo;
             while (info?.Result != ProcessResult.None) // ON TRANS START: 'The managed object is not valid'
             { }
@@ -118,6 +129,8 @@ namespace Revit.Import.Convertor.UI
         {
             if (_worker.IsBusy)
                 _worker.CancelAsync();
+
+            _fileProc.IsAbort = true;
         }
 
         private void ProgressChanged(object? sender, ProgressChangedEventArgs e)
@@ -209,12 +222,12 @@ namespace Revit.Import.Convertor.UI
             if (info.Result == ProcessResult.Cancel)
             {
                 lblInfoAll.Foreground = new SolidColorBrush(Colors.DarkRed);
-                lblInfoAll.Text = $"Processing Canceled: {info?.Info}";
+                lblInfoAll.Text = $"Canceled: {info?.Info}";
             }
             else if (info.Result == ProcessResult.Failed)
             {
                 lblInfoAll.Foreground = new SolidColorBrush(Colors.DarkRed);
-                lblInfoAll.Text = $"Processing Error: {info?.Info}";
+                lblInfoAll.Text = $"Error: {info?.Info}";
             }
             else if (info.Result == ProcessResult.None)
             {
@@ -224,9 +237,13 @@ namespace Revit.Import.Convertor.UI
             else
             {
                 lblInfoAll.Foreground = new SolidColorBrush(Colors.DarkGreen);
-                lblInfoAll.Text = $"Successfully Processed: {info?.Info}";
+                lblInfoAll.Text = $"Processed: {info?.Info}";
             }
+
             SetButtonsState(true);
+            ProcessDispatcher.Execute(() => { prgBar.Value = 0; });
+            _fileProc.IsAbort = false;
+
         }
 
         private void SetButtonsState(bool isEnabled)
@@ -234,6 +251,12 @@ namespace Revit.Import.Convertor.UI
             btnOpenFile.IsEnabled = isEnabled;
             btnToPdf.IsEnabled = isEnabled;
             btnToRvt.IsEnabled = isEnabled;
+            //btnCncel.IsEnabled = !isEnabled;
+            if(isEnabled)
+            {
+                btnToRvt.IsEnabled = _selectedDwgPaths.Count > 0;
+                btnToPdf.IsEnabled = _selectedRvtPaths.Count > 0;
+            }
         }
 
     }
