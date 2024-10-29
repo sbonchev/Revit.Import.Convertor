@@ -2,8 +2,6 @@
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using Revit.Import.Convertor.UI.Enums;
-using System;
-
 //using Revit.Async;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -38,6 +36,12 @@ namespace Revit.Import.Convertor.UI.BL
         {
             string[] dwgPaths = Paths!;
             var fileImpInfo = new ProcessInfo { Result = ProcessResult.None, Info = "" };
+            if (dwgPaths.Length < 1)
+            {
+                fileImpInfo.Info = $"Import To {FileType.Dwg} Failed - No Selected File!";
+                fileImpInfo.Result = ProcessResult.Failed;
+                return fileImpInfo;
+            }            
             if (_uidoc == null)
             {
                 fileImpInfo.Info = $"Import To {FileType.Dwg} Failed - No Active Doc!";
@@ -56,10 +60,11 @@ namespace Revit.Import.Convertor.UI.BL
             var doc = _uidoc.Document;
             ElementId elementId;
             Transaction? trans = null;
-            int inc = 0;
+            float inc = 0;
             try
             {
                 var path = $"{Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)}\\TestDwg\\";
+                OnProcessProgress(10);
                 foreach (string dwgPath in dwgPaths)
                 {
                     if ((worker != null && worker.CancellationPending) || IsAbort)
@@ -82,7 +87,7 @@ namespace Revit.Import.Convertor.UI.BL
                         newDoc.Close();
                     }
                     //Worker?.ReportProgress((inc / dwgPaths.Length) * 100);
-                    OnProcessProgress((inc / dwgPaths.Length) * 100);
+                    OnProcessProgress((int)(inc/dwgPaths.Length * 100));
                     //trans.Commit(); ! REMEMBER: CANNOT PROVIDE NORMAL SAVE !
                 }
                 var cntInfo = inc > 1 ? "s" : "";
@@ -109,6 +114,12 @@ namespace Revit.Import.Convertor.UI.BL
         {
             string[] rvtPaths = Paths!;
             var fileImpInfo = new ProcessInfo { Result = ProcessResult.None, Info = "" };
+            if (rvtPaths.Length < 1)
+            {
+                fileImpInfo.Info = $"Import To {FileType.Rvt} Failed - No Selected File!";
+                fileImpInfo.Result = ProcessResult.Failed;
+                return fileImpInfo;
+            }
             var doc = _uidoc?.Document;
             if (doc == null)
             {
@@ -117,11 +128,12 @@ namespace Revit.Import.Convertor.UI.BL
                 return fileImpInfo;
             }
             Transaction? trans = null;
-            int inc = 1;
+            float inc = 1;
             var path = $"{Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)}\\TestDpf\\";
             var options = new PDFExportOptions { Combine = true };
             try
             {
+                OnProcessProgress(10);
                 foreach (string rvtPath in rvtPaths)
                 {
                     if (IsAbort)
@@ -154,6 +166,7 @@ namespace Revit.Import.Convertor.UI.BL
                         }
                         trans.Commit();
                         opRvtDoc?.Close();
+                        OnProcessProgress((int)(inc / rvtPaths.Length * 100));
                         inc++;
                     }
                 }

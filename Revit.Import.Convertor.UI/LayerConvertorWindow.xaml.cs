@@ -26,17 +26,11 @@ namespace Revit.Import.Convertor.UI
 
         public FormatConvertorWindow(FileProcessing fileProcessing, ExternalEvent extEvent)
         {
-            if (MyApp.AppIsRun)
-                return;
-
             Init(fileProcessing, extEvent);
         }
 
         public FormatConvertorWindow(FileProcessing fileProcessing)
         {
-            if (MyApp.AppIsRun)
-                return;
-
             Init(fileProcessing, ExternalEvent.Create(fileProcessing));
         }
 
@@ -54,6 +48,9 @@ namespace Revit.Import.Convertor.UI
 
         private void Init(FileProcessing fileProcessing, ExternalEvent extEvent)
         {
+            if (MyApp.AppIsRun)
+                return;
+
             InitializeComponent();
 
             _worker = new BackgroundWorker { WorkerSupportsCancellation = true, WorkerReportsProgress = true };
@@ -62,6 +59,12 @@ namespace Revit.Import.Convertor.UI
             _worker.RunWorkerCompleted += WorkerCompleted;
             btnToRvt.IsEnabled = false;
             btnToPdf.IsEnabled = false;
+            btnToRvt.MouseEnter += (s, e) => Mouse.OverrideCursor = Cursors.Hand;
+            btnToPdf.MouseEnter += (s, e) => Mouse.OverrideCursor = Cursors.Hand;
+            btnOpenFile.MouseEnter += (s, e) => Mouse.OverrideCursor = Cursors.Hand;
+            btnCncel.MouseEnter += (s, e) => Mouse.OverrideCursor = Cursors.Hand;
+
+            ProcessDispatcher.Execute(() => { btnCncel.Click += OnCncelClick; }); 
 
             _selectedDwgPaths = new();
             _selectedRvtPaths = new();
@@ -70,16 +73,21 @@ namespace Revit.Import.Convertor.UI
 
             lblInfoAll.Foreground = lblInfo.Foreground;
             lblInfoAll.Text = "Select proper processing .dwg or .rvt file(s)!";
-            //btnCncel.IsEnabled = false;
+            btnCncel.IsEnabled = false;
+            
 
             MyApp.AppIsRun = true;
             MyApp.AppWindow = this;
-            Closed += (o,e) => MyApp.AppIsRun = false; // --- CANNOT RUN MORE THAN ONE APP INSTANCE!
+            Closed += (o, e) => { MyApp.AppIsRun = false; MyApp.AppWindow = null; }; // --- CANNOT RUN MORE THAN ONE APP INSTANCE!
 
             _handlerExternalEvent = extEvent;
             _fileProc = fileProcessing;
+            _fileProc.OnProcessCompleteEvent = null;
             _fileProc.OnProcessCompleteEvent += (o, e) =>  OnProcessCompleteEvent(o!,e); //new EventHandler<ProcessInfo>(OnProcessCompleteEvent!);
+            _fileProc.OnProcessProgressEvent = null;
             _fileProc.OnProcessProgressEvent += (o, e) => OnProcessProgressEvent(o!, e);
+
+
         }
 
         private void ToRvtClick(object sender, RoutedEventArgs e)
@@ -89,6 +97,7 @@ namespace Revit.Import.Convertor.UI
             _fileProc.Paths = _selectedDwgPaths.ToArray();
 
             //_worker.RunWorkerAsync();
+            //ProcessDispatcher.Execute(() => _handlerExternalEvent.Raise());
             _handlerExternalEvent.Raise();
             //while (_fileProc.ProcessInfoResult == null) { }; // --- Complete Process Waiting
         }
@@ -111,9 +120,7 @@ namespace Revit.Import.Convertor.UI
 
         void OnProcessProgressEvent(object sender, int prog)
         {
-            ProcessDispatcher.Execute(() => { prgBar.Value = prog; });
-            Application.Current.Dispatcher.Invoke(() => prgBar.Value = prog);
-            //prgBar.Value = prog;
+            ProcessDispatcher.Execute(() => { prgBar.Value = prog; }); 
         }
 
         private void DoWork(object? sender, DoWorkEventArgs e)
@@ -157,6 +164,27 @@ namespace Revit.Import.Convertor.UI
             SetButtonsState(true);
         }
 
+        private void FilesSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var selectedPaths = lbFiles.SelectedItems;
+            if (_selectedDwgPaths.Count > 0) _selectedDwgPaths.Clear();
+            if (_selectedRvtPaths.Count > 0) _selectedRvtPaths.Clear();
+            foreach (var path in selectedPaths)
+            {
+                var strPath = path.ToString();
+                string ext = IO.Path.GetExtension(strPath!);
+                if (ext.ToUpper() == ".DWG")
+                    _selectedDwgPaths.Add(strPath!);
+                if (ext.ToUpper() == ".RVT")
+                    _selectedRvtPaths.Add(strPath!);
+            }
+            btnToRvt.IsEnabled = _selectedDwgPaths.Count > 0;
+            btnToPdf.IsEnabled = _selectedRvtPaths.Count > 0;
+
+            lblInfoAll.Foreground = new SolidColorBrush(Colors.DarkBlue);
+            lblInfoAll.Text = $"{_selectedDwgPaths.Count} {FileType.Dwg} and {_selectedRvtPaths.Count} {FileType.Rvt} file(s) has been selected!";
+        }
+
         private void OpenFile(object sender, RoutedEventArgs e)
         {
             var openFileDialog = new OpenFileDialog
@@ -189,29 +217,8 @@ namespace Revit.Import.Convertor.UI
             }
             finally
             {
-                Mouse.OverrideCursor = Cursors.Arrow;
+                Mouse.OverrideCursor = Cursors.Hand;
             }
-        }
-
-        private void FilesSelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            var selectedPaths = lbFiles.SelectedItems;
-            if (_selectedDwgPaths.Count > 0) _selectedDwgPaths.Clear();
-            if (_selectedRvtPaths.Count > 0) _selectedRvtPaths.Clear();
-            foreach (var path in selectedPaths)
-            {
-                var strPath = path.ToString();
-                string ext = IO.Path.GetExtension(strPath!);
-                if (ext.ToUpper() == ".DWG")
-                    _selectedDwgPaths.Add(strPath!);
-                if (ext.ToUpper() == ".RVT")
-                    _selectedRvtPaths.Add(strPath!);
-            }
-            btnToRvt.IsEnabled = _selectedDwgPaths.Count > 0;
-            btnToPdf.IsEnabled = _selectedRvtPaths.Count > 0;
-
-            lblInfoAll.Foreground = new SolidColorBrush(Colors.DarkBlue);
-            lblInfoAll.Text = $"{_selectedDwgPaths.Count} {FileType.Dwg} and {_selectedRvtPaths.Count} {FileType.Rvt} file(s) has been selected!";
         }
 
         private void SetInfo(ProcessInfo info)
@@ -241,7 +248,8 @@ namespace Revit.Import.Convertor.UI
             }
 
             SetButtonsState(true);
-            ProcessDispatcher.Execute(() => { prgBar.Value = 0; });
+            //ProcessDispatcher.Execute(() => { prgBar.Value = 0; });
+            prgBar.Value = 0;
             _fileProc.IsAbort = false;
 
         }
@@ -251,8 +259,8 @@ namespace Revit.Import.Convertor.UI
             btnOpenFile.IsEnabled = isEnabled;
             btnToPdf.IsEnabled = isEnabled;
             btnToRvt.IsEnabled = isEnabled;
-            //btnCncel.IsEnabled = !isEnabled;
-            if(isEnabled)
+            btnCncel.IsEnabled = !isEnabled;
+            if (isEnabled)
             {
                 btnToRvt.IsEnabled = _selectedDwgPaths.Count > 0;
                 btnToPdf.IsEnabled = _selectedRvtPaths.Count > 0;
