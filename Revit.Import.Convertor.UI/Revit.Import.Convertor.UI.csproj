@@ -27,7 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Revit.Services\Revit.Services.csproj" />
+    <ProjectReference Include="..\Revit.Services\Revit.Services.csproj" />
   </ItemGroup>
 
 </Project>
