@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Revit.Import.Convertor.App"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Revit.Import.Convertor.UI", "Revit.Import.Convertor.UI\Revit.Import.Convertor.UI.csproj", "{FBD82835-FFF0-48FB-B23D-363399D5EF3C}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Revit.Services", "..\Revit.Services\Revit.Services.csproj", "{0BB3BEB7-34EF-4D94-8823-BEA9057FAEB6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -31,6 +33,14 @@ Global
 		{FBD82835-FFF0-48FB-B23D-363399D5EF3C}.Release|Any CPU.Build.0 = Release|Any CPU
 		{FBD82835-FFF0-48FB-B23D-363399D5EF3C}.Release|x64.ActiveCfg = Release|x64
 		{FBD82835-FFF0-48FB-B23D-363399D5EF3C}.Release|x64.Build.0 = Release|x64
+		{0BB3BEB7-34EF-4D94-8823-BEA9057FAEB6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0BB3BEB7-34EF-4D94-8823-BEA9057FAEB6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0BB3BEB7-34EF-4D94-8823-BEA9057FAEB6}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{0BB3BEB7-34EF-4D94-8823-BEA9057FAEB6}.Debug|x64.Build.0 = Debug|Any CPU
+		{0BB3BEB7-34EF-4D94-8823-BEA9057FAEB6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0BB3BEB7-34EF-4D94-8823-BEA9057FAEB6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0BB3BEB7-34EF-4D94-8823-BEA9057FAEB6}.Release|x64.ActiveCfg = Release|Any CPU
+		{0BB3BEB7-34EF-4D94-8823-BEA9057FAEB6}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -6,8 +6,9 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using Autodesk.Revit.UI;
 using System.Windows.Media;
-using Revit.Import.Convertor.UI.Enums;
 using Revit.Import.Convertor.UI.BL;
+using Revit.Services.Enums;
+using Revit.Services;
 
 
 namespace Revit.Import.Convertor.UI
@@ -24,12 +25,12 @@ namespace Revit.Import.Convertor.UI
         public FormatConvertorWindow()
         { }
 
-        public FormatConvertorWindow(FileProcessing fileProcessing, ExternalEvent extEvent)
+        public FormatConvertorWindow(FileProcessingService fileProcessing, ExternalEvent extEvent)
         {
             Init(fileProcessing, extEvent);
         }
 
-        public FormatConvertorWindow(FileProcessing fileProcessing)
+        public FormatConvertorWindow(FileProcessingService fileProcessing)
         {
             Init(fileProcessing, ExternalEvent.Create(fileProcessing));
         }
@@ -38,7 +39,7 @@ namespace Revit.Import.Convertor.UI
 
         private ExternalEvent _handlerExternalEvent;
 
-        private FileProcessing _fileProc;
+        private FileProcessingService _fileProc;
 
         private BackgroundWorker _worker;
 
@@ -46,7 +47,7 @@ namespace Revit.Import.Convertor.UI
 
         private List<string> _selectedRvtPaths;
 
-        private void Init(FileProcessing fileProcessing, ExternalEvent extEvent)
+        private void Init(FileProcessingService fileProcessing, ExternalEvent extEvent)
         {
             if (MyApp.AppIsRun)
                 return;

@@ -63,6 +63,16 @@ namespace Revit.Import.Convertor.App {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
+        internal static byte[] cad_select_32 {
+            get {
+                object obj = ResourceManager.GetObject("cad_select_32", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
         internal static byte[] cad_xyz_32 {
             get {
                 object obj = ResourceManager.GetObject("cad_xyz_32", resourceCulture);

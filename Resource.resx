@@ -121,4 +121,7 @@
   <data name="cad_xyz_32" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>Resources\cad_xyz_32.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
+  <data name="cad_select_32" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>Resources\cad_select_32.png;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
 </root>

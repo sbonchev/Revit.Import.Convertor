@@ -28,6 +28,7 @@
   
 
   <ItemGroup>
+    <ProjectReference Include="..\Revit.Services\Revit.Services.csproj" />
     <ProjectReference Include="Revit.Import.Convertor.UI\Revit.Import.Convertor.UI.csproj" />
   </ItemGroup>
 
