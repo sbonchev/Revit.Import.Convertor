@@ -103,6 +103,7 @@ namespace Revit.Services
                 {
                     var solid = gObj as Solid;
                     var curve = gObj as Curve;
+                    var point = gObj as Point;
                     if (solid != null && solid.Faces.Size > 0)
                     {
                         stabRef = solid.Faces.get_Item(0)
@@ -114,11 +115,11 @@ namespace Revit.Services
                         stabRef = curve.Reference.ConvertToStableRepresentation(dbDoc);
                         break;
                     }
-                    //else if (point != null)
-                    //{
-                    //    stabRef = point.Reference.ConvertToStableRepresentation(dbDoc);
-                    //    break;
-                    //}
+                    else if (point != null)
+                    {
+                        stabRef = point.Reference.ConvertToStableRepresentation(dbDoc);
+                        break;
+                    }
                 }
                 var refTokens = stabRef.Split([':']);
                 var custStabRef = $"{refTokens[0]}:{refTokens[1]}:{refTokens[2]}:{refTokens[3]}:{idx}";
